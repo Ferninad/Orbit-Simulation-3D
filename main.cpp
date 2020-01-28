@@ -11,6 +11,7 @@ void Convert();
 void Draw();
 void Simulate();
 vector<vector<double>> MultMatrixs(vector<vector<double>> mat1, vector<vector<double>> mat2);
+void DrawCircle(SDL_Point center, int radius, SDL_Color color);
 
 SDL_Window *window;
 SDL_GLContext glContext;
@@ -388,12 +389,19 @@ void Draw(){
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderFillRect(renderer, &pos);
         }
-        pos.x = static_cast<int>((pps[i][0] + posx)*zoom + screenWidth/2 - (ceil(objects[i][0] / mpp * zoom) + 1)/2);
-        pos.y = static_cast<int>((pps[i][1] + posy)*zoom + screenHeight/2 - (ceil(objects[i][0] / mpp * zoom) + 1)/2);
-        pos.w = ceil(objects[i][0] / mpp * zoom) + 1;
-        pos.h = ceil(objects[i][0] / mpp * zoom) + 1;
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderFillRect(renderer, &pos);
+        SDL_Point center = {static_cast<int>(round((pps[i][0] + posx)*zoom + screenWidth/2)), static_cast<int>(round((pps[i][1] + posy)*zoom + screenHeight/2))};
+        int radius = static_cast<int>(round((ceil(objects[i][0] / mpp * zoom) + 1)/2));
+        SDL_Color color = {255, 255, 255, 255};
+        if(center.x >= 0 && center.x < screenWidth && center.y >= 0 && center.y < screenHeight && radius > 4)
+            DrawCircle(center, radius, color);
+        else{
+            pos.x = static_cast<int>((pps[i][0] + posx)*zoom + screenWidth/2 - (ceil(objects[i][0] / mpp * zoom) + 1)/2);
+            pos.y = static_cast<int>((pps[i][1] + posy)*zoom + screenHeight/2 - (ceil(objects[i][0] / mpp * zoom) + 1)/2);
+            pos.w = ceil(objects[i][0] / mpp * zoom) + 1;
+            pos.h = ceil(objects[i][0] / mpp * zoom) + 1;
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderFillRect(renderer, &pos);
+        }
     }
     int x, y, px, py;
     px = 0;
@@ -414,9 +422,8 @@ void Draw(){
 
 void Simulate(){
     for(int i = 0; i < objects.size(); i++){
-        int trailLength = 5000 / timeStep;
-        if(i == followObject && step == 1){
-            step++;
+        int trailLength = 10000 / timeStep;
+        if(i == followObject){
             if(trail.size() == trailLength){
                 for(int k = 0; k < trail.size()-1; k++){
                         trail[k] = trail[k+1];
@@ -426,8 +433,6 @@ void Simulate(){
             else
                 trail.push_back({objects[i][1], objects[i][2], objects[i][3]});
         }
-        else if(i == followObject)
-            step = 1;
         for(int j = 0; j < objects.size(); j++){
             if(i != j){
                 double Fg = ((6.674 / pow(10, 11)) * objects[i][0] * objects[j][0]) / pow(sqrt(pow(objects[j][1] - objects[i][1], 2) + pow(objects[j][2] - objects[i][2], 2) + pow(objects[j][3] - objects[i][3], 2)), 2) * timeStep;
@@ -531,4 +536,21 @@ void Rots(){
     temp.push_back(1);
     rotz.push_back(temp);
     temp.clear();
+}
+
+void DrawCircle(SDL_Point center, int radius, SDL_Color color)
+{
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    for (int w = 0; w < radius * 2; w++)
+    {
+        for (int h = 0; h < radius * 2; h++)
+        {
+            int dx = radius - w; // horizontal offset
+            int dy = radius - h; // vertical offset
+            if ((dx*dx + dy*dy) <= (radius * radius))
+            {
+                SDL_RenderDrawPoint(renderer, center.x + dx, center.y + dy);
+            }
+        }
+    }
 }
