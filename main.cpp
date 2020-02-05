@@ -392,7 +392,7 @@ void Draw(){
         SDL_Point center = {static_cast<int>(round((pps[i][0] + posx)*zoom + screenWidth/2)), static_cast<int>(round((pps[i][1] + posy)*zoom + screenHeight/2))};
         int radius = static_cast<int>(round((ceil(objects[i][0] / mpp * zoom) + 1)/2));
         SDL_Color color = {255, 255, 255, 255};
-        if(center.x >= 0 && center.x < screenWidth && center.y >= 0 && center.y < screenHeight && radius > 4)
+        if(center.x >= 0-radius && center.x < screenWidth+radius && center.y >= 0-radius && center.y < screenHeight+radius && radius > 4)
             DrawCircle(center, radius, color);
         else{
             pos.x = static_cast<int>((pps[i][0] + posx)*zoom + screenWidth/2 - (ceil(objects[i][0] / mpp * zoom) + 1)/2);
@@ -421,6 +421,28 @@ void Draw(){
 }
 
 void Simulate(){
+    for(int i = 0; i < objects.size(); i++){
+        for(int j = 0; j < objects.size(); j++){
+            if(i != j){
+                if(sqrt(pow(objects[j][1] - objects[i][1], 2) + pow(objects[j][2] - objects[i][2], 2) + pow(objects[j][3] - objects[i][3], 2)) < (objects[i][0] / mpp)/2 + (objects[j][0] / mpp)/2){
+                    double vx = (objects[i][0] * objects[i][4] + objects[j][0] * objects[j][4]) / (objects[i][0] + objects[j][0]);
+                    double vy = (objects[i][0] * objects[i][5] + objects[j][0] * objects[j][5]) / (objects[i][0] + objects[j][0]);
+                    double vz = (objects[i][0] * objects[i][6] + objects[j][0] * objects[j][6]) / (objects[i][0] + objects[j][0]);
+                    objects[i][0] += objects[j][0];
+                    objects[i][4] = vx;
+                    objects[i][5] = vy;
+                    objects[i][6] = vz;
+                    objects.erase(objects.begin()+j);
+                    if(j < i){
+                        i--;
+                        j--;
+                    }
+                    else
+                        j--;
+                }
+            }
+        }
+    }
     for(int i = 0; i < objects.size(); i++){
         int trailLength = 10000 / timeStep;
         if(i == followObject){
@@ -541,16 +563,20 @@ void Rots(){
 void DrawCircle(SDL_Point center, int radius, SDL_Color color)
 {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    for (int w = 0; w < radius * 2; w++)
-    {
-        for (int h = 0; h < radius * 2; h++)
-        {
-            int dx = radius - w; // horizontal offset
-            int dy = radius - h; // vertical offset
-            if ((dx*dx + dy*dy) <= (radius * radius))
-            {
-                SDL_RenderDrawPoint(renderer, center.x + dx, center.y + dy);
-            }
-        }
+    double x = center.x - radius;
+    double y = center.y;
+    if(x < 0)
+        x = 0;
+    double endx = center.x + radius;
+    if(endx >= screenWidth)
+        endx = screenWidth - 1;
+    for(x; x < endx; x+=1){
+        double h = sqrt((radius + x - center.x) * (radius - x + center.x)) + center.y;
+        pos.x = round(x);
+        pos.y = y - (round(h) - y);
+        pos.w = 1;
+        pos.h = (round(h) - y) * 2;
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &pos);
     }
 }
